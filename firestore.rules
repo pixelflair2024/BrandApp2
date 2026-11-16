@@ -1,0 +1,55 @@
+rules_version = '2';
+
+// Sicherheitsregeln für UnserAlltag.
+// In der Firebase-Konsole unter Firestore Database → Regeln einfügen und veröffentlichen.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(hid) {
+      return signedIn()
+        && request.auth.uid in get(/databases/$(database)/documents/households/$(hid)).data.members;
+    }
+
+    // Eigenes Profil
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Einladungscodes: Code -> Haushalt
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn() && isMember(request.resource.data.householdId);
+      allow delete: if signedIn() && isMember(resource.data.householdId);
+    }
+
+    match /households/{hid} {
+      allow read: if signedIn() && request.auth.uid in resource.data.members;
+
+      allow create: if signedIn()
+        && request.resource.data.members == [request.auth.uid];
+
+      allow update: if signedIn() && (
+        // Mitglieder dürfen den Haushalt bearbeiten
+        request.auth.uid in resource.data.members
+        // Beitritt: nur sich selbst hinzufügen, mit gültigem Einladungscode
+        || (
+          request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['members', 'memberNames', 'lastJoinCode'])
+          && request.resource.data.members.toSet()
+              == resource.data.members.toSet().union([request.auth.uid].toSet())
+          && request.resource.data.lastJoinCode == resource.data.inviteCode
+          && get(/databases/$(database)/documents/invites/$(request.resource.data.lastJoinCode)).data.householdId == hid
+        )
+      );
+
+      // Alle Daten des Haushalts (Termine, Listen, ...)
+      match /{collection}/{doc} {
+        allow read, write: if isMember(hid);
+      }
+    }
+  }
+}

@@ -1,0 +1,71 @@
+name: APK bauen
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Firebase-Konfiguration
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            echo "CONFIGURED=true" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Secret GOOGLE_SERVICES_JSON fehlt – es wird nur ein Test-Build mit Platzhalter erstellt (Anmeldung funktioniert damit nicht)."
+            cp ci/google-services.placeholder.json app/google-services.json
+            echo "CONFIGURED=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Signaturschlüssel
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$SIGNING_KEYSTORE_BASE64" ]; then
+            echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/unseralltag.jks"
+            echo "SIGNING_STORE_FILE=$RUNNER_TEMP/unseralltag.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Secret SIGNING_KEYSTORE_BASE64 fehlt – APK wird mit zufälligem Debug-Schlüssel signiert (Google-Anmeldung funktioniert damit nicht)."
+          fi
+
+      - name: Tests & Build
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+        run: ./gradlew --no-daemon testDebugUnitTest assembleRelease
+
+      - name: APK umbenennen
+        run: cp app/build/outputs/apk/release/app-release.apk "UnserAlltag-1.0.${{ github.run_number }}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UnserAlltag-1.0.${{ github.run_number }}
+          path: UnserAlltag-*.apk
+
+      - name: Release veröffentlichen (zum Herunterladen aufs Handy)
+        if: env.CONFIGURED == 'true' && env.SIGNING_STORE_FILE != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: UnserAlltag 1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: UnserAlltag-*.apk
+          body: |
+            APK aufs Handy laden und installieren.
+            Branch: ${{ github.ref_name }}
