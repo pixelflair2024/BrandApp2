@@ -48,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,9 +64,16 @@ import de.unseralltag.util.utcMillisToLocalDate
 import java.time.LocalDate
 import java.time.LocalTime
 
+/** Beispieldaten für Vorschauen/Screenshots (statt Firestore). */
+val LocalDemoData = staticCompositionLocalOf<Map<String, List<Any>>?> { null }
+
 /** Beobachtet eine Collection des Haushalts als Compose-State. */
 @Composable
 fun <T : Any> collection(name: String, clazz: Class<T>): State<List<T>> {
+    val demo = LocalDemoData.current
+    if (demo != null) {
+        return remember(name) { mutableStateOf(demo[name].orEmpty().filterIsInstance(clazz)) }
+    }
     val store = LocalSession.current.store
     val flow = remember(store.householdId, name) { store.observe(name, clazz) }
     return flow.collectAsState(initial = emptyList())

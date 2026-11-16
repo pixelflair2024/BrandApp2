@@ -94,7 +94,12 @@ fun CalendarScreen(nav: Nav) {
     val gridEnd = gridStart.plusDays(42)
     val monthOccurrences = remember(events, monthStr) { occurrencesBetween(events, gridStart, gridEnd) }
     val busyDays = remember(monthOccurrences) {
-        monthOccurrences.groupBy { it.start.toLocalDate() }.mapValues { e -> e.value.map { it.event.assignedTo }.distinct() }
+        // Mehrtägige Termine markieren jeden Tag, den sie umfassen
+        monthOccurrences.flatMap { o ->
+            val last = maxOf(o.start.toLocalDate(), o.end.minusMinutes(1).toLocalDate())
+            generateSequence(o.start.toLocalDate()) { it.plusDays(1) }.takeWhile { it <= last }.take(62)
+                .map { it to o.event.assignedTo }.toList()
+        }.groupBy({ it.first }, { it.second }).mapValues { it.value.distinct() }
     }
     val specialByDay = remember(specialDays, monthStr) {
         specialDays.flatMap { d -> listOf(d.nextDate(gridStart), d.nextDate(gridStart.plusDays(41))).distinct().map { it to d } }

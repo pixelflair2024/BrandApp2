@@ -14,6 +14,13 @@ Eine Android-App, mit der ihr zu zweit euren Alltag organisiert – alles wird i
 | **Notizen** | Gemeinsame Notizen (WLAN-Passwort, Rezepte, …), anheftbar und durchsuchbar |
 | **Verträge & Fristen** | Kosten pro Monat/Jahr, Vertragsende, Kündigungsfrist → „spätestens kündigen am …“ plus Erinnerung |
 
+## So sieht's aus
+
+![Hauptbereiche](docs/screenshots-1.png)
+![Weitere Bereiche](docs/screenshots-2.png)
+
+*(Beispieldaten; auf Android 12+ übernimmt die App die Farben eures Hintergrundbilds.)*
+
 Technik: Kotlin, Jetpack Compose (Material 3 mit dynamischen Farben und Dark Mode), Firebase Authentication (Google-Anmeldung) und Cloud Firestore (funktioniert auch offline).
 
 ---

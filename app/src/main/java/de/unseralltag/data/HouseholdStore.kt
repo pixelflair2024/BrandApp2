@@ -24,7 +24,7 @@ object Collections {
 
 /** Zugriff auf alle Daten eines Haushalts (households/{id}/...). */
 class HouseholdStore(val householdId: String) {
-    private val db = Firebase.firestore
+    private val db by lazy { Firebase.firestore }
 
     fun col(name: String): CollectionReference =
         db.collection("households").document(householdId).collection(name)

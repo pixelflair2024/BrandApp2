@@ -51,10 +51,10 @@ import de.unseralltag.ui.common.EmptyState
 import de.unseralltag.ui.common.collection
 
 @Composable
-fun WishlistScreen(nav: Nav) {
+fun WishlistScreen(nav: Nav, initialTab: String? = null) {
     val session = LocalSession.current
     val all by collection<WishItem>(Collections.WISHES)
-    var tabUid by rememberSaveable { mutableStateOf(session.myUid) }
+    var tabUid by rememberSaveable { mutableStateOf(initialTab ?: session.myUid) }
     var editing by remember { mutableStateOf<WishItem?>(null) }
     val members = listOf(session.myUid) + session.members.filter { it != session.myUid }
     val isMine = tabUid == session.myUid

@@ -104,7 +104,7 @@ fun SettingsScreen(nav: Nav) {
             )
             OutlinedButton(onClick = { ReminderWorker.runNow(context) }) { Text("Jetzt prüfen") }
             HorizontalDivider()
-            Text("Angemeldet als ${AccountRepository.currentUser?.email ?: "?"}", style = MaterialTheme.typography.bodySmall)
+            Text("Angemeldet als ${runCatching { AccountRepository.currentUser?.email }.getOrNull() ?: "?"}", style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = { confirmLogout = true }) { Text("Abmelden") }
             Text("Version ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline)
